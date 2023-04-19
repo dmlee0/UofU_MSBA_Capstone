@@ -1,0 +1,205 @@
+---
+title: "EDA_Assignment"
+author: "Derick M. Lee"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Business Problem Statement
+Swire Coca-Cola being one of the largest western United States bottlers, has an opportunity with its business to understand what businesses are more successful with their product, but also create the most profitability and sales. Being able to identify the different types of businesses, there regions, sales volumes, and other key attributes will not only be able to provide key information for running the business, but also be able to help effectively price a product with its business customer.  With implementation of information directly related to this project, Swire Coca-Cola will be able to identify its success by properly structuring business sales to business customers according to their different risk profiles. They will also be able to understand more fully the consumer sales from the business to provide future needs to their supply chain forecasting needs. Lastly, they will be able to get a greater understanding of how Coca-Cola is doing in the different types of businesses they provide product and services to. 
+
+The analysis brings insight from the past customer data utilizing different analytical models in Posit to help Swire Coca-Cola continuously improve their business results. The project will look at internal customer data first and possibly external data depending on availability and accessibility. The project team will be the ones working through the data and project throughout.  There will be two weeks for exploring the data, four weeks building different data models, and then a couple weeks to compile the results to present to the stakeholders and business. Ultimately it will be a great project that will help identify key areas to improve today and in the future. 
+
+
+## Analytic Objective
+
+```{r, echo=TRUE}
+#Data
+Sales <- read.csv("Sales.csv")
+
+summary(Sales)
+
+head(Sales)
+
+Customer <- read.csv("Customer.csv")
+
+summary(Customer)
+
+head(Customer)
+
+data <- merge(Customer, Sales, by.x = "CUSTOMER_NUMBER_BLINDED", by.y = "CUSTOMER_NUMBER_BLINDED")
+
+summary(data)
+
+head(data)
+
+data_df <- data.frame(data)
+
+data_df
+
+str(data_df)
+
+```
+## Questions
+
+What is the amount of profit from each DELIVERY_PLANT_DESCRIPTION?
+```{r, echo=TRUE}
+library(dplyr)
+library(ggplot2)
+        
+barplot(data_df$GROSS_PROFIT_DEAD_NET,
+        names.arg=data$DELIVERY_PLANT_DESCRIPTION,
+        xlab="Plant",
+        ylab="Revenue")
+```
+
+What is the amount of profit from each Calorie Desc?
+```{r, echo=TRUE}
+library(dplyr)
+library(ggplot2)
+        
+barplot(data$GROSS_PROFIT_DEAD_NET,
+        names.arg=data$CALORIE_CAT_DESC,
+        xlab="Calorie Desc",
+        ylab="Revenue")
+
+```
+What is the amount of profit from each PACK_SIZE_SALES_UNIT_DESCRIPTION?
+```{r, echo=TRUE}
+library(dplyr)
+library(ggplot2)
+        
+barplot(data$GROSS_PROFIT_DEAD_NET,
+        names.arg=data$PACK_SIZE_SALES_UNIT_DESCRIPTION,
+        xlab="Pack Size Desc",
+        ylab="Revenue")
+
+table(data$PACK_SIZE_SALES_UNIT_DESCRIPTION, data$DISCOUNT)
+
+```
+
+What is the length of time as a customer to Dead Net Gross Profit?
+
+What is the Dead Net Gross Profit by Address City?
+
+What is the Dead Net Gross Profit by County?
+
+What is the Dead Net Gross Profit by Customer Trade Channel Description?
+
+What is the Dead net Gross Profit by number of transactions?
+
+What is the Dead Net Gross Profit by Cold Drink Channel Description?
+
+## EDA
+```{r pressure, echo=TRUE}
+library(dplyr)
+library(ggplot2)
+        
+plot(x = data$NUM_OF_TRANSACTIONS,
+     y = data$DISCOUNT,
+     xlab = "Number of Transactions",
+     ylab = "Discount",
+     main = "Number of Transactions vs Discount")
+
+```
+
+
+```{r, echo=TRUE}
+library(dplyr)
+library(ggplot2)
+        
+plot(x = data$COGS,
+     y = data$DISCOUNT,
+     xlab = "COGS",
+     ylab = "Discount",
+     main = "COGS vs Discount")
+
+```
+
+```{r, echo=TRUE}
+library(dplyr)
+library(ggplot2)
+        
+plot(x = data$DEAD_NET,
+     y = data$DISCOUNT,
+     xlab = "Dead Net",
+     ylab = "Discount",
+     main = "Dead Net vs Discount")
+
+```
+
+```{r, echo=TRUE}
+library(dplyr)
+library(ggplot2)
+        
+plot(x = data$PHYSICAL_VOLUME,
+     y = data$DISCOUNT,
+     xlab = "Physical Volume",
+     ylab = "Discount",
+     main = "Physical Volume vs Discount")
+
+```
+
+# This is a good visual of where the customers are located. 
+```{r, echo=TRUE}
+library(dplyr)
+library(ggplot2)
+        
+plot(x = data$GEO_LONGITUDE,
+     y = data$GEO_LATITUDE,
+     xlim = c(-125, -75),
+     ylim = c(30, 50),
+     xlab = "Longitude",
+     ylab = "Latitude",
+     main = "Logitude vs Latitude")
+     #col = data$DISCOUNT>= 5000)
+    
+
+```
+
+
+```{r, echo=TRUE}
+library(ggplot2)
+
+summary(data$DISCOUNT)
+
+hist(data$DISCOUNT, freq = FALSE, xlim = c(-2000, 2000))
+
+```
+
+
+```{r, echo=TRUE}
+library(ggplot2)
+library(dplyr)
+
+summary(data$DISCOUNT)
+
+table(data$CUSTOMER_ACTIVITY_CLUSTER_DESCRIPTION)
+```
+
+
+```{r, echo=TRUE}
+library(ggplot2)
+library(dplyr)
+
+table(data$SALES_OFFICE_DESCRIPTION)
+
+```
+
+```{r, echo=TRUE}
+library(ggplot2)
+library(dplyr)
+
+table(data_df$PRODUCT_SOLD_BLINDED)
+
+```
+
+## Results
+
+Looking through the data I think a good approach is to look at the Langitude and Longitude of the data sources and begin to filter more through the data to evaluate if there is a common area that needs to be reviewed. The additional area that is to be reviewed is based on the different Discounts offered to see if one is favored more then others when discounts are applied.  Once we can understand more of the discounts, then we can begin to evaluate more about what products may be favored in what region. 
+
+At this time, I have not been able to identify ethical areas. One key one to watch out for is when you are able to build a pricing strategy that it does not favor one type of business then another. An example is Mexican vs Italian. Making pricing favor one type. Still need time to look at more types of relationships with the data.  It looks like there is one with Dead Net and COGS vs Discount. 

@@ -1,0 +1,338 @@
+---
+title: "Modeling_Assignment"
+author: "Derick M. Lee"
+date: "2023-03-19"
+output: 
+  pdf_document:
+    toc: true
+---
+
+# Introduction
+
+Swire Coca-Cola being one of the largest western United States bottlers, has an opportunity with its business to understand what businesses are more successful with their product, but also create the most profitability and sales. Being able to identify the different types of businesses, there regions, sales volumes, and other key attributes will not only be able to provide key information for running the business, but also be able to help effectively price a product with its business customer.  With implementation of information directly related to this project, Swire Coca-Cola will be able to identify its success by properly structuring business sales to business customers according to their different risk profiles. They will also be able to understand more fully the consumer sales from the business to provide future needs to their supply chain forecasting needs. Lastly, they will be able to get a greater understanding of how Coca-Cola is doing in the different types of businesses they provide product and services to. 
+
+The analysis brings insight from the past customer data utilizing different analytical models in Posit to help Swire Coca-Cola continuously improve their business results. The project will look at internal customer data first and possibly external data depending on availability and accessibility. The project team will be the ones working through the data and project throughout.  There will be two weeks for exploring the data, four weeks building different data models, and then a couple weeks to compile the results to present to the stakeholders and business. Ultimately it will be a great project that will help identify key areas to improve today and in the future. 
+
+```{r, echo = FALSE}
+
+#install.packages("dplyr","tidyverse","dplyr","data.table","knitr","kableExtra","corrplot","randomForest","Hmisc","moments","psych", "caret", "imputeTS", "ggplot2","lattice","rlang", "car")
+#install.packages("tidyverse")
+#install.packages("tinytex")
+#for(pkg in packages){
+ # if (pkg %in% rownames(installed.packages()) == FALSE)
+  #{install.packages(pkg)}
+  #if (pkg %in% rownames(.packages()) == FALSE)
+  {#library(pkg, character.only = TRUE)}
+}
+```
+
+#Data Preparation
+
+All data was imported as character variables. Transformed to factor(7), integer(1), and numeric(17) variables. 
+
+```{r, echo=TRUE}
+#Importing Data and merging the customer and sales data together.
+data <- merge(read.csv("Customer.csv"),read.csv("Sales.csv"))
+
+summary(data)
+
+head(data)
+
+#Creating a data frame
+data_df <- data.frame(data)
+
+#Converting on boarding date variable to a date and then to a numeric number for Days and years a customer.
+data_df$ON_BOARDING_DATE <- as.Date(data_df$ON_BOARDING_DATE, origin = "yyyy-mm-dd")
+data_df$ON_BOARDING_DATE <- as.numeric(data_df$ON_BOARDING_DATE)
+
+December_31_2022 <- as.Date("2022-12-31", origin = "yyyy-mm-dd")
+December_31_2022 <- as.numeric(December_31_2022)
+
+data_df$DAYS_A_CUSTOMER <- December_31_2022 - data_df$ON_BOARDING_DATE
+
+data_df$YEARS_A_CUSTOMER <- data_df$DAYS_A_CUSTOMER/365
+
+# Adding a non-linear relationship
+data_df$YEARS_A_CUSTOMER2 <- data_df$YEARS_A_CUSTOMER^2
+
+#Creating new calculated variables
+data_df$DISCOUNT_PER_TRANSACTION <- data_df$DISCOUNT/data_df$NUM_OF_TRANSACTIONS
+
+data_df$DISCOUNT_PER_PHYSICAL_VOLUME <- data_df$DISCOUNT/data_df$PHYSICAL_VOLUME
+
+data_df$PHYSICAL_VOLUME_PER_NUM_OF_TRANSACTION <- data_df$PHYSICAL_VOLUME/data_df$NUM_OF_TRANSACTIONS
+
+data_df$DEAD_NET_PER_PHYSICAL_VOLUME <- data_df$DEAD_NET/data_df$PHYSICAL_VOLUME
+
+data_df$DEAD_NET_PER_NUM_OF_TRANSACTION <- data_df$DEAD_NET/data_df$NUM_OF_TRANSACTIONS
+
+data_df$LOG_GROSS_PROFIT_DEAD_NET <- log(data_df$DEAD_NET)+1
+
+#Creating factor variables vs character variables
+data_df[c(2,7,10,11,12,14,15,16)] <- data.frame(lapply(data_df[c(2,7,10,11,12,14,15,16)],factor))
+
+#Removing un-desirable variables
+data_df <- rbind(within(data_df, rm('ï..CUSTOMER_NUMBER_BLINDED', 'DELIVERY_PLANT_DESCRIPTION', 'ADDRESS_CITY', 'COUNTY', 'BUSINESS_TYPE_EXTENSION_DESCRIPTION', 'CUSTOMER_TRADE_CHANNEL_DESCRIPTION2', 'MARKET_DESCRIPTION', 'CALORIE_CAT_DESC', 'PACK_SIZE_SALES_UNIT_DESCRIPTION', 'MIN_POSTING_DATE', 'MAX_POSTING_DATE', 'ON_BOARDING_DATE', 'ADDRESS_ZIP_CODE')))
+
+data_df[c(9,10)] <- data.frame(lapply(data_df[c(9,10)],factor))
+
+#Transforming blank, Nan, and inf data
+data_df$SALES_OFFICE_DESCRIPTION[is.nan(data_df$SALES_OFFICE_DESCRIPTION)] <- "None"
+
+data_df$BEV_CAT_DESC[is.nan(data_df$BEV_CAT_DESC)] <- "None"
+
+data_df$DISCOUNT_PER_PHYSICAL_VOLUME[is.nan(data_df$DISCOUNT_PER_PHYSICAL_VOLUME)] <- 0
+
+data_df$DISCOUNT_PER_PHYSICAL_VOLUME[is.infinite(data_df$DISCOUNT_PER_PHYSICAL_VOLUME)] <- 0
+
+data_df$DEAD_NET_PER_PHYSICAL_VOLUME[is.nan(data_df$DEAD_NET_PER_PHYSICAL_VOLUME)] <- 0
+
+data_df$DEAD_NET_PER_PHYSICAL_VOLUME[is.infinite(data_df$DEAD_NET_PER_PHYSICAL_VOLUME)] <- 0
+
+data_df$GEO_LONGITUDE[is.nan(data_df$GEO_LONGITUDE)] <- 0
+
+data_df$GEO_LONGITUDE[is.infinite(data_df$GEO_LONGITUDE)] <- 0
+
+data_df$GEO_LATITUDE[is.nan(data_df$GEO_LATITUDE)] <- 0
+
+data_df$GEO_LATITUDE[is.infinite(data_df$GEO_LATITUDE)] <- 0
+
+data_df$PHYSICAL_VOLUME[is.nan(data_df$PHYSICAL_VOLUME)] <- 0
+
+data_df$PHYSICAL_VOLUME[is.infinite(data_df$PHYSICAL_VOLUME)] <- 0
+
+data_df$DISCOUNT[is.nan(data_df$DISCOUNT)] <- 0
+
+data_df$DISCOUNT[is.infinite(data_df$DISCOUNT)] <- 0
+
+data_df$LOG_GROSS_PROFIT_DEAD_NET[is.nan(data_df$LOG_GROSS_PROFIT_DEAD_NET)] <- 0
+
+data_df$LOG_GROSS_PROFIT_DEAD_NET[is.infinite(data_df$LOG_GROSS_PROFIT_DEAD_NET)] <- 0
+
+str(data_df)
+summary(data_df)
+data_df
+
+```
+Correlations
+```{r na_values }
+correlation <- cor(data_df[c("GEO_LONGITUDE", "GEO_LATITUDE", "PHYSICAL_VOLUME", "DISCOUNT", "INVOICE_PRICE", "DEAD_NET", "GROSS_PROFIT_DEAD_NET", "COGS", "NUM_OF_TRANSACTIONS", "DAYS_A_CUSTOMER", "YEARS_A_CUSTOMER", "DISCOUNT_PER_TRANSACTION", "DISCOUNT_PER_PHYSICAL_VOLUME", "PHYSICAL_VOLUME_PER_NUM_OF_TRANSACTION", "DEAD_NET_PER_PHYSICAL_VOLUME", "DEAD_NET_PER_NUM_OF_TRANSACTION", "LOG_GROSS_PROFIT_DEAD_NET", "YEARS_A_CUSTOMER2")])
+
+correlation
+
+```
+
+
+```{r, echo=TRUE}
+#library(graphics)
+
+#scatterplots <- pairs(data_df[c("DISCOUNT","PHYSICAL_VOLUME","NUM_OF_TRANSACTION","GROSS_PROFIT_DEAD_NET")])
+
+#scatterplots
+
+```
+
+```{r, echo=TRUE}
+#install.packages("psych")
+
+#library(psych)
+
+#pairs_panels <- pairs.panels(data_df[c("DISCOUNT","PHYSICAL_VOLUME","NUM_OF_TRANSACTION","GROSS_PROFIT_DEAD_NET")])
+
+#pairs_panels
+
+```
+
+
+Test and Train Data Being split for building models
+```{r, echo=TRUE}
+library(ggplot2)
+library(caret)
+library(tidyverse)
+
+set.seed(333)
+
+datasplit70 <- createDataPartition(data_df$GROSS_PROFIT_DEAD_NET, p = 0.7,list=FALSE)
+
+datasplit80 <- createDataPartition(data_df$GROSS_PROFIT_DEAD_NET, p = 0.8,list=FALSE)
+
+train70 <- data_df[datasplit70,]
+test70 <- data_df[-datasplit70,]
+
+train80 <- data_df[datasplit80,]
+test80 <- data_df[-datasplit80,]
+
+dim(train70)
+dim(test70)
+    
+glimpse(train70)
+
+dim(train80)
+dim(test80)
+
+glimpse(train80)
+```
+Checking the summary of all the variables like mean, median and standard deviation
+```{r, echo=TRUE}
+#install.packages("Hmisc")
+library(Hmisc)
+describe(train80, fast=TRUE)
+```
+Checking the class (character, numeric, integer) of the variables in the data set
+```{r, echo=TRUE}
+#To check the class (character, numeric, integer) of the variables in the data set
+table(sapply(test80, class)) 
+
+
+```
+A positive skew indicates that the tail is on the right side of the distribution, which extends towards more positive values and a high kurtosis is said to be `leptokurtic`, which means it tends to produce more outliers than the normal distribution. To correct this we have used the log transformation of the response variable.
+```{r, echo=TRUE}
+#install.packages("moments")
+library(moments)
+data_df_log <- data_df %>%
+          select("GROSS_PROFIT_DEAD_NET") %>%
+          na.omit %>%
+          mutate(LogGROSS_PROFIT_DEAD_NET = log(GROSS_PROFIT_DEAD_NET+1))
+
+summary(data_df_log$GROSS_PROFIT_DEAD_NET)
+
+cat("Skewness: ",skewness(data_df$GROSS_PROFIT_DEAD_NET),"\n")
+cat("Kurtosis: ",kurtosis(data_df$GROSS_PROFIT_DEAD_NET))
+
+```
+
+Histogram
+```{r, echo=TRUE}
+hist2 <- ggplot(data_df_log, aes(x = LogGROSS_PROFIT_DEAD_NET, fill = ..count..)) +
+  geom_histogram(binwidth = 0.25) +
+  ggtitle("Plot 2: Histogram plot of log(GROSS_PROFIT_DEAD_NET)") +
+  ylab("Frequency (Number of transactions)") +
+  xlab("log(GROSS_PROFIT_DEAD_NET)") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+cowplot::plot_grid(hist2)
+
+```
+Plot of cold drink channels to gross profit dead net
+```{r, echo=TRUE}
+library(ggplot2)
+ggplot(data=data_df[!is.na(data_df$GROSS_PROFIT_DEAD_NET),], aes(x=data_df$COLD_DRINK_CHANNEL_DESCRIPTION, y=GROSS_PROFIT_DEAD_NET)) +
+ geom_boxplot(outlier.colour = "red", outlier.shape = 1)  +
+        scale_y_continuous(breaks= seq(0, 8, by=10))  + 
+ggtitle("Plot 3: Box plot of GROSS_PROFIT_DEAD_NET by COLD_DRINK_CHANNEL_DESCRIPTION")
+
+```
+
+#Linear Model
+
+This model is build using the log of gross profit dead net
+```{r, warning=FALSE, echo=TRUE}
+#install.packages("car")
+library(car)
+library(dplyr)
+library(caret)
+
+set.seed(333)
+
+lm_log_model <- lm(LOG_GROSS_PROFIT_DEAD_NET ~., data = select(train80, -PRODUCT_SOLD_BLINDED, - GROSS_PROFIT_DEAD_NET))
+
+summary(lm_log_model)
+
+#car::vif(model1)
+
+```
+This model is build using the gross profit dead net
+```{r, warning=FALSE, echo=TRUE}
+#install.packages("car")
+library(car)
+library(dplyr)
+library(caret)
+
+set.seed(333)
+
+lm_model<- lm(GROSS_PROFIT_DEAD_NET ~., data = select(train80, -PRODUCT_SOLD_BLINDED, - LOG_GROSS_PROFIT_DEAD_NET))
+
+summary(lm_model)
+
+#car::vif(model1)
+
+```
+
+## Predictions
+
+This is the prediction of the log and non log models
+```{r}
+lm_log_model
+predictions_lm <- data.frame(Id = train80$PRODUCT_SOLD_BLINDED,
+                          lm = exp(predict(lm_model, newdata= train80))
+                          )
+
+predictions_lm_log <- data.frame(Id = train80$PRODUCT_SOLD_BLINDED,
+                          lm = exp(predict(lm_log_model, newdata= train80))
+                          )
+head(predictions_lm)
+
+head(predictions_lm_log)
+```
+
+## In-sample RMSE value
+
+```{r}
+rmse <- function(actual, predicted) sqrt(mean((actual - predicted)^2))
+
+rmse(train80$LOG_GROSS_PROFIT_DEAD_NET , exp(predict(lm_log_model, newdata= train80)) )
+```
+
+## in-sample R-squared value
+
+```{r}
+r2 <- function(actual, predicted){
+  TSS <- sum((actual - mean(actual))^2)
+  RSS <- sum((actual - predicted)^2)
+  1 - RSS/TSS
+}
+
+r2(train80$LOG_GROSS_PROFIT_DEAD_NET, exp(predict(lm_log_model, newdata= train80)))
+```
+# Regression Tree
+
+
+```{r}
+#install.packages("rpart")
+library(rpart)
+m.rpart <- rpart(GROSS_PROFIT_DEAD_NET ~ ., data = select(train80, -PRODUCT_SOLD_BLINDED, - LOG_GROSS_PROFIT_DEAD_NET))
+
+m.rpart
+```
+##Visualizing the desition tree
+```{r}
+#install.packages("rpart.plot")
+library(rpart.plot)
+
+rpart.plot(m.rpart, digits = 3)
+
+```
+
+##Evaluating Model Performance
+```{r}
+library(rpart)
+
+p.rpart <- predict(m.rpart, test80)
+
+summary(p.rpart)
+
+summary(test80$GROSS_PROFIT_DEAD_NET)
+
+#Correlation
+cor(p.rpart, test80$GROSS_PROFIT_DEAD_NET)
+
+#MAE
+MAE <- function(actual, predicted){
+  mean(abs(actual - predicted))
+}
+
+MAE(p.rpart, test80$GROSS_PROFIT_DEAD_NET)
+
+
+```
+
