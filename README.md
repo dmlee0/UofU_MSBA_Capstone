@@ -1,6 +1,6 @@
 # UofU_MSBA_Capstone
 
-This is a grouping of the different steps of my final Capstone project for my MSBA at the University of Utah.
+This is a compilation of the different steps of my MSBA Final Capstone project at the University of Utah.
 
 ### Project
 Swire Coca-Cola: Predicting Customer Success
